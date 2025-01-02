@@ -13,6 +13,7 @@ Before running the project, ensure that you have the following installed and con
     - `UNMESHED_AUTH_ID`: Your Unmeshed authentication ID.
     - `UNMESHED_AUTH_TOKEN`: Your Unmeshed authentication token.
     - `UNMESHED_BASE_URL`: Base URL for the Unmeshed server. Defaults to `http://localhost` if not provided.
+    - `UNMESHED_BASE_URL_PORT`: Port - defaults to 443
 
 ## Setup Instructions
 
