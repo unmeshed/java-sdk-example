@@ -21,9 +21,13 @@ public class Main {
         // Retrieve configuration values from environment variables
         final String authId = System.getenv("UNMESHED_AUTH_ID");
         final String authToken = System.getenv("UNMESHED_AUTH_TOKEN");
-        final String baseUrl = System.getenv("UNMESHED_BASE_URL") != null
-                ? System.getenv("UNMESHED_BASE_URL")
-                : "http://localhost";
+        final String baseUrl = System.getenv("UNMESHED_BASE_URL");
+
+        String port = System.getenv("UNMESHED_BASE_URL_PORT");
+        if(port == null || port.isEmpty()) {
+            // Default is the HTTPS port
+            port = "443";
+        }
 
         // Validate required environment variables
         if (authId == null || authToken == null) {
@@ -37,7 +41,7 @@ public class Main {
                 .workRequestBatchSize(10)
                 .initialDelayMillis(20)
                 .stepTimeoutMillis(Long.MAX_VALUE) // No timeout
-                .port(8080) //Optional for https uri's
+                .port(Integer.parseInt(port))
                 .build();
 
         // Initialize and start the Unmeshed client
