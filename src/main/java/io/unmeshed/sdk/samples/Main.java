@@ -1,8 +1,16 @@
 package io.unmeshed.sdk.samples;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.unmeshed.api.common.ApiCallType;
+import io.unmeshed.api.common.ProcessData;
+import io.unmeshed.api.common.ProcessRequestData;
+import io.unmeshed.api.common.ProcessSearchRequest;
 import io.unmeshed.client.ClientConfig;
 import io.unmeshed.client.UnmeshedClient;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Entry point for the Unmeshed SDK example application.
@@ -56,5 +64,53 @@ public class Main {
         client.start();
 
         log.info("Started Unmeshed SDK successfully.");
+
+        log.info("Running some other samples APIs:");
+
+        ProcessRequestData request = ProcessRequestData.builder()
+                .name("testing")
+                .namespace("default")
+                .input(Map.of("abc", "pqr"))
+                .correlationId("abcd")
+                .requestId("req-001")
+                .build();
+
+        ProcessData processResultDataAsync = client.runProcessAsync(request);
+        log.info("Process : {}", processResultDataAsync);
+        log.info("Aync output: (should be empty if the process is not completed) {}", processResultDataAsync.getOutput());
+
+        ProcessData processResultDataSync = client.runProcessSync(request);
+        log.info("Process : {}", processResultDataSync);
+        log.info("Sync output: {}", processResultDataSync.getOutput());
+
+        JsonNode resultsGet = client.invokeApiMappingGet("testing", "api-call-001", "api-call-crid-001", ApiCallType.SYNC);
+        log.info("API Call output: {}", resultsGet);
+
+        JsonNode resultsPost = client.invokeApiMappingPost("testing", "api-call-001", "api-call-crid-001", Map.of("myInput", "input1"), ApiCallType.SYNC);
+        log.info("API Call output: {}", resultsPost);
+
+        JsonNode resultsGetAsync = client.invokeApiMappingGet("testing", "api-call-001", "api-call-crid-001", ApiCallType.ASYNC);
+        log.info("API Call output: {}", resultsGetAsync);
+
+        JsonNode resultsPostAsync = client.invokeApiMappingPost("testing", "api-call-001", "api-call-crid-001", Map.of("myInput", "input1"), ApiCallType.ASYNC);
+        log.info("API Call output: {}", resultsPostAsync);
+
+        printProcessData(client.getProcessData(resultsPost.path("processId").asLong(), true));
+        printProcessData(client.getProcessData(resultsGet.path("processId").asLong(), true));
+        printProcessData(client.getProcessData(resultsGetAsync.path("processId").asLong(), true));
+        printProcessData(client.getProcessData(resultsPostAsync.path("processId").asLong(), true));
+        printProcessData(client.getProcessData(processResultDataSync.getProcessId(), true));
+        printProcessData(client.getProcessData(processResultDataAsync.getProcessId(), true));
+
+        List<ProcessData> processData = client.searchProcessExecutions(ProcessSearchRequest.builder().build());
+        log.info("Search process executions: {}", processData);
+
     }
+
+
+    private static void printProcessData(ProcessData processData) {
+        log.info("Process data from sync call: {}", processData);
+        log.info("Process data output from sync call: {}", processData.getOutput());
+    }
+
 }

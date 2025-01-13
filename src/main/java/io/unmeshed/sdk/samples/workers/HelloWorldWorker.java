@@ -16,6 +16,7 @@ public class HelloWorldWorker {
         WorkRequest workRequest = WorkContext.currentWorkRequest();
         return Map.of(
                 "message", "Hello World! This is Unmeshed, ready to run your workloads :)",
+                "input", input,
                 "stepName", workRequest.getStepName(),
                 "stepRef", workRequest.getStepRef(),
                 "stepId", workRequest.getStepId()
