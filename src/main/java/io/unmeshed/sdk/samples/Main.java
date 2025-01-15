@@ -43,6 +43,7 @@ public class Main {
             throw new IllegalArgumentException("Missing authentication credentials.");
         }
 
+        log.info("Starting the worker connecting to {}:{}", baseUrl, port);
         // Build the client configuration, you can customize all of the properties in this configuration
         ClientConfig clientConfig = ClientConfig.builder(authId, authToken)
                 .baseUrl(baseUrl)
