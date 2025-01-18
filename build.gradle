@@ -32,8 +32,8 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
 
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    implementation 'io.unmeshed:unmeshed-sdk:1.6.9'
-    implementation 'io.unmeshed:unmeshed-api-common:1.6.2'
+    implementation 'io.unmeshed:unmeshed-sdk:1.6.11'
+    implementation 'io.unmeshed:unmeshed-api-common:1.6.11'
 
     implementation 'org.slf4j:slf4j-api:2.0.16'
     // Use your preferred logging solution
