@@ -1,30 +1,46 @@
 package io.unmeshed.sdk.samples;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.unmeshed.api.common.ApiCallType;
 import io.unmeshed.api.common.ProcessData;
 import io.unmeshed.api.common.ProcessRequestData;
-import io.unmeshed.api.common.ProcessSearchRequest;
 import io.unmeshed.client.ClientConfig;
 import io.unmeshed.client.UnmeshedClient;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Entry point for the Unmeshed SDK example application.
- *
+ * <p>
  * This application demonstrates how to configure and start the Unmeshed SDK client,
  * and begin processing work requests.
  */
 @Slf4j
 public class Main {
 
-    /**
-     * Main method to initialize and start the Unmeshed SDK client.
-     * @param args Command-line arguments (not used in this sample application).
-     */
+    static class RunInfo {
+        final long startTime;
+        final long duration;
+
+        RunInfo(long startTime, long duration) {
+            this.startTime = startTime;
+            this.duration = duration;
+        }
+
+        long getEndTime() {
+            return startTime + duration;
+        }
+    }
+
+    @SneakyThrows
     public static void main(String[] args) {
         // Retrieve configuration values from environment variables
         final String authId = System.getenv("UNMESHED_AUTH_ID");
@@ -32,7 +48,7 @@ public class Main {
         final String baseUrl = System.getenv("UNMESHED_BASE_URL");
 
         String port = System.getenv("UNMESHED_BASE_URL_PORT");
-        if(port == null || port.isEmpty()) {
+        if (port == null || port.isEmpty()) {
             // Default is the HTTPS port
             port = "443";
         }
@@ -55,63 +71,144 @@ public class Main {
 
         // Initialize and start the Unmeshed client
         UnmeshedClient client = new UnmeshedClient(clientConfig);
-
-        // Register workers by specifying the package
-        String packageName = "io.unmeshed.sdk.samples";
-        log.info("Scanning package: {} for workers", packageName);
-        client.registerWorkers(packageName);
-
         // Start the client
         client.start();
 
-        log.info("Started Unmeshed SDK successfully.");
+        int totalRuns = 50000;
+        CountDownLatch countDownLatch = new CountDownLatch(totalRuns);
 
-        log.info("Running some other samples APIs:");
+        // Use thread-safe collections
+        List<RunInfo> runInfos = Collections.synchronizedList(new ArrayList<>(totalRuns));
 
-        ProcessRequestData request = ProcessRequestData.builder()
-                .name("testing")
-                .namespace("default")
-                .input(Map.of("abc", "pqr"))
-                .correlationId("abcd")
-                .requestId("req-001")
-                .build();
+        ExecutorService executorService = Executors.newFixedThreadPool(200);
+        // Adjust the thread pool size as needed
 
-        ProcessData processResultDataAsync = client.runProcessAsync(request);
-        log.info("Process : {}", processResultDataAsync);
-        log.info("Aync output: (should be empty if the process is not completed) {}", processResultDataAsync.getOutput());
+        for (int i = 0; i < totalRuns; i++) {
+            int finalI = i;
+            executorService.submit(() -> {
+                try {
+                    long startTime = System.currentTimeMillis();
+                    // Mark transaction as started
 
-        ProcessData processResultDataSync = client.runProcessSync(request);
-        log.info("Process : {}", processResultDataSync);
-        log.info("Sync output: {}", processResultDataSync.getOutput());
+                    // --- Your original logic here: run the process ---
+                    ProcessRequestData request = ProcessRequestData.builder()
+                            .name("testing")
+                            .namespace("default")
+                            .input(Map.of("abc", "pqr"))
+                            .correlationId("abcd")
+                            .requestId("req-001-%s".formatted(finalI))
+                            .build();
 
-        JsonNode resultsGet = client.invokeApiMappingGet("testing", "api-call-001", "api-call-crid-001", ApiCallType.SYNC);
-        log.info("API Call output: {}", resultsGet);
+                    // Synchronous call
+                    ProcessData processResultDataSync = client.runProcessSync(request);
 
-        JsonNode resultsPost = client.invokeApiMappingPost("testing", "api-call-001", "api-call-crid-001", Map.of("myInput", "input1"), ApiCallType.SYNC);
-        log.info("API Call output: {}", resultsPost);
+                    long duration = System.currentTimeMillis() - startTime;
 
-        JsonNode resultsGetAsync = client.invokeApiMappingGet("testing", "api-call-001", "api-call-crid-001", ApiCallType.ASYNC);
-        log.info("API Call output: {}", resultsGetAsync);
+                    // Capture data
+                    runInfos.add(new RunInfo(startTime, duration));
 
-        JsonNode resultsPostAsync = client.invokeApiMappingPost("testing", "api-call-001", "api-call-crid-001", Map.of("myInput", "input1"), ApiCallType.ASYNC);
-        log.info("API Call output: {}", resultsPostAsync);
+                    log.info("Completed run number {} in {} ms", finalI, duration);
+                } finally {
+                    countDownLatch.countDown();
+                }
+            });
+        }
 
-        printProcessData(client.getProcessData(resultsPost.path("processId").asLong(), true));
-        printProcessData(client.getProcessData(resultsGet.path("processId").asLong(), true));
-        printProcessData(client.getProcessData(resultsGetAsync.path("processId").asLong(), true));
-        printProcessData(client.getProcessData(resultsPostAsync.path("processId").asLong(), true));
-        printProcessData(client.getProcessData(processResultDataSync.getProcessId(), true));
-        printProcessData(client.getProcessData(processResultDataAsync.getProcessId(), true));
+        // Shut down and wait for all tasks to finish
+        countDownLatch.await();
+        executorService.shutdown();
+        if (!executorService.awaitTermination(1, TimeUnit.MINUTES)) {
+            log.warn("Not all tasks finished within the timeout!");
+        }
 
-        List<ProcessData> processData = client.searchProcessExecutions(ProcessSearchRequest.builder().build());
-        log.info("Search process executions: {}", processData);
+        // Now compute metrics after all runs have completed
+        printSummary(runInfos);
 
     }
 
+    private static void printSummary(List<RunInfo> runInfos) {
+        if (runInfos.isEmpty()) {
+            log.info("No runs to summarize.");
+            return;
+        }
 
-    private static void printProcessData(ProcessData processData) {
-        log.info("Process data from sync call: {}", processData);
-        log.info("Process data output from sync call: {}", processData.getOutput());
+        // Prepare sorted durations for min, max, percentiles
+        List<Long> durationsSorted;
+        List<Long> startTimes = new ArrayList<>(runInfos.size());
+        List<Long> endTimes = new ArrayList<>(runInfos.size());
+
+        synchronized (runInfos) {
+            durationsSorted = runInfos.stream()
+                    .map(r -> r.duration)
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            for (RunInfo r : runInfos) {
+                startTimes.add(r.startTime);
+                endTimes.add(r.getEndTime());
+            }
+        }
+
+        // Basic stats
+        long minDuration = durationsSorted.getFirst();
+        long maxDuration = durationsSorted.getLast();
+        double avgDuration = durationsSorted.stream()
+                .mapToLong(Long::longValue)
+                .average()
+                .orElse(0.0);
+
+        long p50 = getPercentile(durationsSorted, 50);
+        long p75 = getPercentile(durationsSorted, 75);
+        long p95 = getPercentile(durationsSorted, 95);
+
+        // Throughput (transactions/second) across the entire run
+        long earliestStart = startTimes.stream().min(Long::compare).orElse(0L);
+        long latestEnd = endTimes.stream().max(Long::compare).orElse(0L);
+        double totalSeconds = (latestEnd - earliestStart) / 1000.0;
+        double tps = 0.0;
+        if (totalSeconds > 0) {
+            tps = runInfos.size() / totalSeconds;
+        }
+
+        // Calculate how many started/completed per minute
+        Map<Long, Long> startedPerMin = groupByMinute(startTimes);
+        Map<Long, Long> completedPerMin = groupByMinute(endTimes);
+
+        // Print summary
+        log.info("==== SUMMARY OF {} RUNS ====", runInfos.size());
+        log.info("Average duration:     {} ms", avgDuration);
+        log.info("Min duration:         {} ms", minDuration);
+        log.info("Max duration:         {} ms", maxDuration);
+        log.info("P50 duration:         {} ms", p50);
+        log.info("P75 duration:         {} ms", p75);
+        log.info("P95 duration:         {} ms", p95);
+        log.info("Overall average TPS:  {} transactions/sec", tps);
+
+        // Print optional per-minute stats
+        log.info("Transactions STARTED per minute:");
+        startedPerMin.forEach((minute, count) ->
+                log.info("  Minute {} -> {} started", minute, count));
+
+        log.info("Transactions COMPLETED per minute:");
+        completedPerMin.forEach((minute, count) ->
+                log.info("  Minute {} -> {} completed", minute, count));
+    }
+
+    private static long getPercentile(List<Long> sortedValues, int percentile) {
+        if (sortedValues.isEmpty()) {
+            return 0;
+        }
+        int index = (int) Math.ceil(percentile / 100.0 * sortedValues.size()) - 1;
+        index = Math.min(Math.max(index, 0), sortedValues.size() - 1);
+        return sortedValues.get(index);
+    }
+
+    private static Map<Long, Long> groupByMinute(List<Long> times) {
+        return times.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t / 60000,  // minute grouping
+                        Collectors.counting()
+                ));
     }
 
 }
