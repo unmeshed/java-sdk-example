@@ -41,7 +41,7 @@ import io.unmeshed.client.workers.WorkerMethod;
 
 public class YourClass {
 
-    @WorkerMethod("exampleWorker")
+    @WorkerFunction(name = "exampleWorker")
     public WorkerOutput exampleMethod(WorkerInput input) { //Input is optional
        // Your worker method logic here
        // Return worker's output
