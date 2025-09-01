@@ -1,6 +1,6 @@
 package io.unmeshed.sdk.samples.workers;
 
-import io.unmeshed.client.workers.WorkerMethod;
+import io.unmeshed.client.workers.WorkerFunction;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -8,7 +8,7 @@ import java.util.Map;
 @Slf4j
 public class ArithmeticWorker {
 
-    @WorkerMethod("arithmetic_operation")
+    @WorkerFunction(name = "arithmetic_operation")
     public Map<String, Object> performOperation(final Map<String, Object> input) {
         String operation = (String) input.get("operation");
         int num1 = (int) input.get("num1");
