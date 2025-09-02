@@ -16,7 +16,7 @@
         <java.version>21</java.version>
         <jackson.version>2.18.2</jackson.version>
         <lombok.version>1.18.34</lombok.version>
-        <unmeshed.version>1.9.9</unmeshed.version>
+        <unmeshed.version>2.0.1</unmeshed.version>
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.16</logback.version>
     </properties>
@@ -34,17 +34,6 @@
             </snapshots>
         </repository>
 
-        <repository>
-            <id>unmeshed-sdk</id>
-            <name>Unmeshed SDK Repository</name>
-            <url>https://unmeshed-sdk.s3.amazonaws.com/maven-repo</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
     </repositories>
 
     <dependencies>
@@ -74,11 +63,6 @@
         <dependency>
             <groupId>io.unmeshed</groupId>
             <artifactId>unmeshed-sdk</artifactId>
-            <version>${unmeshed.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.unmeshed</groupId>
-            <artifactId>unmeshed-api-common</artifactId>
             <version>${unmeshed.version}</version>
         </dependency>
 
