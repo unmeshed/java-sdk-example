@@ -11,29 +11,13 @@ java {
 
 repositories {
     mavenCentral()
-    maven {
-        url "s3://unmeshed-sdk/maven-repo"
-        credentials(AwsCredentials) {
-            accessKey = project.findProperty("aws.accessKey") ?: System.getenv("AWS_ACCESS_KEY")
-            secretKey = project.findProperty("aws.secretKey") ?: System.getenv("AWS_SECRET_KEY")
-        }
-    }
-}
-
-ext {
-    jacksonVersion = '2.18.2' // Replace with the latest version
 }
 
 dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
 
-    compileOnly 'org.projectlombok:lombok:1.18.34'
-    implementation 'io.unmeshed:unmeshed-sdk:1.9.9'
-    implementation 'io.unmeshed:unmeshed-api-common:1.9.9'
+    implementation 'io.unmeshed:unmeshed-sdk:2.0.1'
 
     implementation 'org.slf4j:slf4j-api:2.0.16'
     // Use your preferred logging solution
