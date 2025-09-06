@@ -54,6 +54,23 @@ public class YourClass {
 }
 ```
 
+
+Register inline (Lambda) workers
+```java
+        // Register Inline Workers (Lambda)
+        Function<Map<String, Object>, Object> lambdaWorkerFunction = (Map<String, Object> input) -> {
+            Map<String, Object> output = new HashMap<>();
+
+            output.put("status", "success");
+            output.put("receivedKeys", input.keySet());
+            output.put("message", "Processed successfully");
+
+            return output;
+        };
+
+        client.registerWorkerFunction(lambdaWorkerFunction, "default", "lamba-worker-function", 200, false);
+
+```
 ## How can you get additional context such as step id or process id in your worker?
 
 ```

@@ -9,8 +9,12 @@ import io.unmeshed.client.ClientConfig;
 import io.unmeshed.client.UnmeshedClient;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import static io.unmeshed.client.utils.ClientJacksonConfig.getObjectMapper;
 
 /**
  * Entry point for the Unmeshed SDK example application.
@@ -60,6 +64,20 @@ public class Main {
         String packageName = "io.unmeshed.sdk.samples";
         log.info("Scanning package: {} for workers", packageName);
         client.registerWorkers(packageName);
+
+
+        // Register Inline Workers (Lambda)
+        Function<Map<String, Object>, Object> lambdaWorkerFunction = (Map<String, Object> input) -> {
+            Map<String, Object> output = new HashMap<>();
+
+            output.put("status", "success");
+            output.put("receivedKeys", input.keySet());
+            output.put("message", "Processed successfully");
+
+            return output;
+        };
+
+        client.registerWorkerFunction(lambdaWorkerFunction, "default", "lamba-worker-function", 200, false);
 
         // Start the client
         client.start();
