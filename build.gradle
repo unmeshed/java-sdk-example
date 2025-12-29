@@ -17,7 +17,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
 
-    implementation 'io.unmeshed:unmeshed-sdk:2.0.6'
+    implementation 'io.unmeshed:unmeshed-sdk:2.0.7'
 
     implementation 'org.slf4j:slf4j-api:2.0.16'
     // Use your preferred logging solution
